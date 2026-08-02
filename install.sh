@@ -27,7 +27,8 @@ INSTALL_DIR="$HOME/unbego"
 if [ -d "$INSTALL_DIR" ]; then
     echo -e "  ${YELLOW}[*] Updating existing unbego installation...${NC}"
     cd "$INSTALL_DIR"
-    git pull
+    git fetch --all
+    git reset --hard origin/master
 else
     echo -e "  ${YELLOW}[*] Cloning unbego repository...${NC}"
     git clone https://github.com/txorav/unbego.git "$INSTALL_DIR"
