@@ -72,5 +72,26 @@ class TestUnbegoFlash(unittest.TestCase):
         self.assertTrue(unbego_flash.check_mtkclient())
 
 
+class TestUnbegoCore(unittest.TestCase):
+    def test_core_constants(self):
+        # We can't easily test the interactive loop, but we can verify
+        # constants and imports are valid
+        import unbego_core
+        self.assertEqual(unbego_core.DEVICE_CODENAME, "begonia")
+        self.assertEqual(unbego_core.VERSION, "1.0.0")
+
+    @patch('builtins.print')
+    def test_banner(self, mock_print):
+        import unbego_core
+        unbego_core.banner()
+        self.assertTrue(mock_print.called)
+
+    @patch('builtins.print')
+    def test_menu(self, mock_print):
+        import unbego_core
+        unbego_core.menu()
+        self.assertTrue(mock_print.called)
+
+
 if __name__ == '__main__':
     unittest.main()
