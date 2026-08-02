@@ -30,8 +30,22 @@ banner
 echo -e "${YELLOW}[*] Updating package lists...${NC}"
 pkg update -y
 
+echo -e "${YELLOW}[*] Enabling root-repo and x11-repo (required for usbutils on some Termux versions)...${NC}"
+pkg install -y root-repo x11-repo || echo -e "${YELLOW}[!] Could not install extra repos, continuing...${NC}"
+pkg update -y
+
 echo -e "${YELLOW}[*] Installing core packages...${NC}"
 pkg install -y termux-api usbutils libusb python clang make libffi git android-tools
+
+if ! command -v lsusb &> /dev/null; then
+    echo -e "${YELLOW}[!] usbutils not found via pkg. Attempting direct binary download...${NC}"
+    curl -sL "https://github.com/termux/termux-root-packages/releases/latest/download/usbutils.deb" -o /tmp/usbutils.deb || \
+    curl -sL "https://raw.githubusercontent.com/Magisk-Modules-Repo/usbutils/master/system/bin/lsusb" -o "$PREFIX/bin/lsusb"
+    if [ -f "/tmp/usbutils.deb" ]; then
+        dpkg -i /tmp/usbutils.deb || echo -e "${RED}[!] dpkg install failed${NC}"
+    fi
+    chmod +x "$PREFIX/bin/lsusb" 2>/dev/null || true
+fi
 
 echo -e "${YELLOW}[*] Installing Python dependencies...${NC}"
 pip install pyusb pyserial
