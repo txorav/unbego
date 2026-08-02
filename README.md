@@ -30,10 +30,20 @@ It works by communicating with the MediaTek Boot ROM (BROM) mode built into the 
 
 ## Installation
 
+### Easy Install (Recommended)
+Run this single command on a fresh Termux installation to automatically download and set up everything:
+
 ```bash
-# 1. Clone or copy the unbego folder to Termux
-# 2. Run the setup script
+bash <(curl -fsSL https://raw.githubusercontent.com/txorav/unbego/master/install.sh)
+```
+
+### Manual Install
+```bash
+# 1. Clone the repository
+git clone https://github.com/txorav/unbego.git
 cd unbego
+
+# 2. Run the setup script
 chmod +x setup-unbego.sh
 ./setup-unbego.sh
 ```
