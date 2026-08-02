@@ -1,0 +1,20 @@
+#!/bin/bash
+# unbego - Main entry point
+# Redmi Note 8 Pro Unbrick Tool for Termux (No Root Required)
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Check if termux-usb exists
+if ! command -v termux-usb &> /dev/null; then
+    echo "Error: termux-usb not found. Run ./setup-unbego.sh first."
+    exit 1
+fi
+
+# Check if Python exists
+if ! command -v python &> /dev/null; then
+    echo "Error: Python not found. Run ./setup-unbego.sh first."
+    exit 1
+fi
+
+# Pass all arguments to the Python core
+python "$SCRIPT_DIR/unbego_core.py" "$@"
