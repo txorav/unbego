@@ -2,7 +2,9 @@
 # unbego - Main entry point
 # Redmi Note 8 Pro Unbrick Tool for Termux (No Root Required)
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Resolve symlinks to find the true installation directory
+SCRIPT_PATH="$(realpath "$0" 2>/dev/null || readlink -f "$0" 2>/dev/null || echo "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
 
 # Check if termux-usb exists
 if ! command -v termux-usb &> /dev/null; then
