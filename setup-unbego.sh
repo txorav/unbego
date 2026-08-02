@@ -35,7 +35,11 @@ pkg install -y root-repo x11-repo || echo -e "${YELLOW}[!] Could not install ext
 pkg update -y
 
 echo -e "${YELLOW}[*] Installing core packages...${NC}"
-pkg install -y termux-api usbutils libusb python clang make libffi git android-tools
+pkg install -y termux-api usbutils libusb python python-pip clang make libffi git android-tools
+
+echo -e "${YELLOW}[*] Bootstrapping pip...${NC}"
+python -m ensurepip --upgrade || true
+python -m pip install --upgrade pip || true
 
 echo -e "${YELLOW}[*] Installing Python dependencies...${NC}"
 python -m pip install pyusb pyserial
