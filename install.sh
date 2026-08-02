@@ -1,6 +1,6 @@
 #!/bin/bash
 # unbego - Easy Termux Install Script
-# Usage: bash <(curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/unbego/main/install.sh)
+# Usage: bash <(curl -fsSL https://raw.githubusercontent.com/txorav/unbego/master/install.sh)
 
 set -e
 
@@ -30,8 +30,7 @@ if [ -d "$INSTALL_DIR" ]; then
     git pull
 else
     echo -e "  ${YELLOW}[*] Cloning unbego repository...${NC}"
-    # Replace 'YOUR_GITHUB_USERNAME' with the actual username after pushing
-    git clone https://github.com/YOUR_GITHUB_USERNAME/unbego.git "$INSTALL_DIR"
+    git clone https://github.com/txorav/unbego.git "$INSTALL_DIR"
     cd "$INSTALL_DIR"
 fi
 
