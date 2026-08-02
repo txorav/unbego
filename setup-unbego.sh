@@ -38,7 +38,7 @@ echo -e "${YELLOW}[*] Installing core packages...${NC}"
 pkg install -y termux-api usbutils libusb python clang make libffi git android-tools
 
 echo -e "${YELLOW}[*] Installing Python dependencies...${NC}"
-pip install pyusb pyserial
+python -m pip install pyusb pyserial
 
 echo -e "${YELLOW}[*] Cloning mtkclient (MediaTek BROM tool)...${NC}"
 MTKCLIENT_DIR="$HOME/mtkclient"
@@ -51,7 +51,7 @@ fi
 
 echo -e "${YELLOW}[*] Installing mtkclient dependencies...${NC}"
 cd "$MTKCLIENT_DIR"
-pip install -r requirements.txt 2>/dev/null || pip install pycryptodome lxml
+python -m pip install -r requirements.txt 2>/dev/null || python -m pip install pycryptodome lxml
 
 echo ""
 
