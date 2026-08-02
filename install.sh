@@ -38,6 +38,11 @@ fi
 echo -e "  ${YELLOW}[*] Setting execute permissions...${NC}"
 chmod +x setup-unbego.sh unbego download-firmware.sh
 
+echo -e "  ${YELLOW}[*] Adding unbego to PATH...${NC}"
+if [ -d "$PREFIX/bin" ]; then
+    ln -sf "$INSTALL_DIR/unbego" "$PREFIX/bin/unbego"
+fi
+
 echo -e "  ${YELLOW}[*] Running unbego setup...${NC}"
 ./setup-unbego.sh
 
