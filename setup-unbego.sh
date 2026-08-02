@@ -31,7 +31,7 @@ echo -e "${YELLOW}[*] Updating package lists...${NC}"
 pkg update -y
 
 echo -e "${YELLOW}[*] Installing core packages...${NC}"
-pkg install -y termux-api usbutils libusb python clang make libffi git
+pkg install -y termux-api usbutils libusb python clang make libffi git android-tools
 
 echo -e "${YELLOW}[*] Installing Python dependencies...${NC}"
 pip install pyusb pyserial
@@ -48,6 +48,15 @@ fi
 echo -e "${YELLOW}[*] Installing mtkclient dependencies...${NC}"
 cd "$MTKCLIENT_DIR"
 pip install -r requirements.txt 2>/dev/null || pip install pycryptodome lxml
+
+echo ""
+
+echo -e "${YELLOW}[*] Installing termux-adb (USB ADB/Fastboot support)...${NC}"
+if ! command -v termux-adb &> /dev/null; then
+    curl -s https://raw.githubusercontent.com/nohajc/termux-adb/master/install.sh | bash || echo -e "${RED}[!] Failed to install termux-adb${NC}"
+else
+    echo -e "${GREEN}[+] termux-adb is already installed.${NC}"
+fi
 
 echo ""
 echo -e "${GREEN}============================================${NC}"

@@ -30,6 +30,7 @@ from unbego_flash import (
     unlock_bootloader,
     quick_fix_boot,
 )
+from unbego_adb import adb_menu
 
 # ── Colors ──────────────────────────────────────────────
 CYAN = "\033[0;36m"
@@ -89,6 +90,9 @@ def menu():
     print(f"  {GREEN}x{NC}) Fix Bootloop (Wipe Userdata/Cache/Metadata)")
     print(f"  {CYAN}{'─' * 48}{NC}")
     print(f"  {RED}{BOLD}  f) ★ FULL UNBRICK (Guided 7-Phase Sequence) ★{NC}")
+    print(f"  {CYAN}{'─' * 48}{NC}")
+    print(f"  {YELLOW}{BOLD}  POST-RECOVERY TOOLS{NC}")
+    print(f"  {GREEN}t{NC}) ADB & Fastboot Tools (Network / USB)")
     print(f"  {CYAN}{'─' * 48}{NC}")
     print(f"  {GREEN}9{NC}) Check mtkclient Installation")
     print(f"  {GREEN}h{NC}) How to Enter BROM Mode (Guide)")
@@ -450,6 +454,9 @@ def main():
 
         elif choice == "f":
             cmd_full_unbrick(last_device_path)
+
+        elif choice == "t":
+            adb_menu()
 
         elif choice == "9":
             if check_mtkclient():
