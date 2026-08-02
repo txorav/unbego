@@ -85,9 +85,10 @@ def menu():
     print(f"  {GREEN}7{NC}) Erase FRP (Factory Reset Protection)")
     print(f"  {GREEN}8{NC}) Reset NVRAM / NVCFG")
     print(f"  {CYAN}{'─' * 48}{NC}")
-    print(f"  {YELLOW}{BOLD}  QUICK REPAIRS (No Firmware Needed){NC}")
+    print(f"  {YELLOW}{BOLD}  QUICK REPAIRS / TOOLS{NC}")
     print(f"  {GREEN}u{NC}) Unlock Bootloader (BROM bypass)")
     print(f"  {GREEN}x{NC}) Fix Bootloop (Wipe Userdata/Cache/Metadata)")
+    print(f"  {GREEN}r{NC}) Flash Custom Recovery (TWRP/OrangeFox)")
     print(f"  {CYAN}{'─' * 48}{NC}")
     print(f"  {RED}{BOLD}  f) ★ FULL UNBRICK (Guided 7-Phase Sequence) ★{NC}")
     print(f"  {CYAN}{'─' * 48}{NC}")
@@ -195,6 +196,21 @@ def cmd_flash_partition(device_path=None):
         print(f"  {RED}[✗] No image file provided.{NC}")
         return
     flash_partition(device_path, part, image)
+
+
+def cmd_flash_custom_recovery(device_path=None):
+    if not check_mtkclient():
+        return
+    if not device_path:
+        device_path = input(f"  {YELLOW}Device path (e.g., /dev/bus/usb/001/002): {NC}").strip()
+    if not device_path:
+        print(f"  {RED}[✗] No device path provided.{NC}")
+        return
+    image = input(f"  {YELLOW}Recovery Image file path (e.g., TWRP.img): {NC}").strip()
+    if not image:
+        print(f"  {RED}[✗] No image file provided.{NC}")
+        return
+    flash_partition(device_path, "recovery", image)
 
 
 def cmd_flash_scatter(device_path=None):
@@ -451,6 +467,9 @@ def main():
 
         elif choice == "x":
             cmd_quick_fix_boot(last_device_path)
+
+        elif choice == "r":
+            cmd_flash_custom_recovery(last_device_path)
 
         elif choice == "f":
             cmd_full_unbrick(last_device_path)
