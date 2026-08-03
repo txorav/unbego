@@ -11,6 +11,8 @@ import time
 
 # MediaTek USB identifiers
 MTK_VENDOR_ID = "0e8d"
+XIAOMI_VENDOR_ID = "2717"
+GOOGLE_VENDOR_ID = "18d1"
 
 # Known MediaTek mode USB Product IDs
 MTK_MODES = {
@@ -108,6 +110,9 @@ def detect_mtk_device():
                 "path": dev["path"],
                 "description": dev["description"],
             }
+        elif vid.lower() in (XIAOMI_VENDOR_ID, GOOGLE_VENDOR_ID):
+            print(f"  {YELLOW}[!] Note: Device is in ADB/Fastboot mode, NOT BROM/Preloader.{NC}")
+            print(f"  {YELLOW}    -> Use the 'ADB & Fastboot Tools' menu (Option t).{NC}")
 
     print(f"{CYAN}{'─' * 50}{NC}")
 
