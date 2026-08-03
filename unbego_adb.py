@@ -53,7 +53,22 @@ def get_fastboot_cmd():
     return None
 
 
+def request_usb_permissions():
+    """Request permission for all connected USB devices via Termux API."""
+    if not shutil.which("termux-usb"):
+        return
+    try:
+        out = subprocess.check_output(["termux-usb", "-l"], stderr=subprocess.STDOUT).decode("utf-8")
+        devices = [line.strip() for line in out.split('\n') if line.strip().startswith('/dev/')]
+        for dev in devices:
+            # -r requests permission. It shows a popup if not already granted.
+            subprocess.run(["termux-usb", "-r", dev], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+
 def cmd_list_devices():
+    request_usb_permissions()
     print(f"\n  {CYAN}--- USB Devices (termux-adb) ---{NC}")
     cmd = get_adb_cmd(use_network=False)
     if cmd:
