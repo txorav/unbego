@@ -14,7 +14,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
 from unbego_host import get_host_info, print_host_info
-from unbego_detect import detect_mtk_device, wait_for_device
+from unbego_detect import smart_scan_usb, wait_for_device, get_term_width
 from unbego_flash import (
     check_mtkclient,
     backup_partitions,
@@ -65,40 +65,41 @@ def banner():
 
 
 def menu():
-    print(f"  {CYAN}{'─' * 48}{NC}")
+    w = get_term_width()
+    print(f"  {CYAN}{'─' * w}{NC}")
     print(f"  {BOLD}MAIN MENU{NC}")
-    print(f"  {CYAN}{'─' * 48}{NC}")
+    print(f"  {CYAN}{'─' * w}{NC}")
     print(f"  {GREEN}1{NC}) Detect Host Phone (this device)")
-    print(f"  {GREEN}2{NC}) Scan for Bricked Device (USB OTG)")
+    print(f"  {GREEN}2{NC}) Smart Scan & Connect Device (Auto-Detect Mode)")
     print(f"  {GREEN}3{NC}) Wait for Device (BROM mode entry)")
-    print(f"  {CYAN}{'─' * 48}{NC}")
+    print(f"  {CYAN}{'─' * w}{NC}")
     print(f"  {GREEN}4{NC}) Backup Partitions")
     print(f"  {GREEN}5{NC}) Flash Single Partition")
     print(f"  {GREEN}6{NC}) Flash Full ROM (Scatter File)")
-    print(f"  {CYAN}{'─' * 48}{NC}")
+    print(f"  {CYAN}{'─' * w}{NC}")
     print(f"  {YELLOW}{BOLD}  PARTITION TABLE REPAIR{NC}")
     print(f"  {GREEN}a{NC}) Print Partition Table (GPT)")
     print(f"  {GREEN}b{NC}) Backup Partition Table (GPT)")
     print(f"  {GREEN}c{NC}) Restore Partition Table (from backup)")
     print(f"  {GREEN}d{NC}) Rebuild Partition Table (from scatter)")
-    print(f"  {CYAN}{'─' * 48}{NC}")
+    print(f"  {CYAN}{'─' * w}{NC}")
     print(f"  {GREEN}7{NC}) Erase FRP (Factory Reset Protection)")
     print(f"  {GREEN}8{NC}) Reset NVRAM / NVCFG")
-    print(f"  {CYAN}{'─' * 48}{NC}")
+    print(f"  {CYAN}{'─' * w}{NC}")
     print(f"  {YELLOW}{BOLD}  QUICK REPAIRS / TOOLS{NC}")
     print(f"  {GREEN}u{NC}) Unlock Bootloader (BROM bypass)")
     print(f"  {GREEN}x{NC}) Fix Bootloop (Wipe Userdata/Cache/Metadata)")
     print(f"  {GREEN}r{NC}) Flash Custom Recovery (TWRP/OrangeFox)")
-    print(f"  {CYAN}{'─' * 48}{NC}")
+    print(f"  {CYAN}{'─' * w}{NC}")
     print(f"  {RED}{BOLD}  f) ★ FULL UNBRICK (Guided 7-Phase Sequence) ★{NC}")
-    print(f"  {CYAN}{'─' * 48}{NC}")
+    print(f"  {CYAN}{'─' * w}{NC}")
     print(f"  {YELLOW}{BOLD}  POST-RECOVERY TOOLS{NC}")
     print(f"  {GREEN}t{NC}) ADB & Fastboot Tools (Network / USB)")
-    print(f"  {CYAN}{'─' * 48}{NC}")
+    print(f"  {CYAN}{'─' * w}{NC}")
     print(f"  {GREEN}9{NC}) Check mtkclient Installation")
     print(f"  {GREEN}h{NC}) How to Enter BROM Mode (Guide)")
     print(f"  {GREEN}0{NC}) Exit")
-    print(f"  {CYAN}{'─' * 48}{NC}")
+    print(f"  {CYAN}{'─' * w}{NC}")
     print()
 
 
@@ -153,7 +154,19 @@ def cmd_detect_host():
 
 
 def cmd_scan_device():
-    return detect_mtk_device()
+    result = smart_scan_usb()
+    if not result:
+        return None
+        
+    mode = result.get("mode")
+    if mode in ("adb", "fastboot", "recovery"):
+        print(f"  {YELLOW}[!] Notice: Device is in {mode.upper()} mode.{NC}")
+        ans = input(f"  {YELLOW}Jump to ADB & Fastboot Tools Menu? (Y/n): {NC}").strip().lower()
+        if ans != 'n':
+            adb_menu()
+        return result
+        
+    return result
 
 
 def cmd_wait_device():

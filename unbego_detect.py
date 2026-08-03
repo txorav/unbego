@@ -2,12 +2,15 @@
 """
 unbego_detect.py - USB Device Detection Module
 Detects bricked Redmi Note 8 Pro in MediaTek BROM / Preloader mode via USB OTG.
+Also intelligently detects ADB and Fastboot modes.
 """
 
 import subprocess
 import json
 import sys
 import time
+import shutil
+import os
 
 # MediaTek USB identifiers
 MTK_VENDOR_ID = "0e8d"
@@ -27,21 +30,20 @@ DEVICE_NAME = "Redmi Note 8 Pro"
 DEVICE_CODENAME = "begonia"
 DEVICE_CHIPSET = "MT6785 (Helio G90T)"
 
+def get_term_width():
+    return min(shutil.get_terminal_size((50, 20)).columns, 70)
 
-def get_usb_devices_termux():
-    """Get USB devices from termux-usb -l (returns JSON array of device paths)."""
+def request_usb_permissions():
+    """Request permission for all connected USB devices via Termux API."""
+    if not shutil.which("termux-usb"):
+        return
     try:
-        result = subprocess.run(
-            ["termux-usb", "-l"],
-            capture_output=True, text=True, timeout=10
-        )
-        if result.stdout.strip():
-            devices = json.loads(result.stdout.strip())
-            return devices if isinstance(devices, list) else []
-    except Exception as e:
-        print(f"  [!] termux-usb error: {e}")
-    return []
-
+        out = subprocess.check_output(["termux-usb", "-l"], stderr=subprocess.STDOUT).decode("utf-8")
+        devices = [line.strip() for line in out.split('\n') if line.strip().startswith('/dev/')]
+        for dev in devices:
+            subprocess.run(["termux-usb", "-r", dev], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
 
 def get_lsusb_devices():
     """Parse lsusb output for device info."""
@@ -51,7 +53,6 @@ def get_lsusb_devices():
             ["lsusb"], capture_output=True, text=True, timeout=10
         )
         for line in result.stdout.strip().splitlines():
-            # Format: Bus 001 Device 002: ID 0e8d:0003 MediaTek Inc. ...
             parts = line.split()
             if len(parts) >= 6 and "ID" in parts:
                 idx = parts.index("ID")
@@ -71,75 +72,119 @@ def get_lsusb_devices():
         pass
     return devices
 
+def get_adb_fastboot_cmd(cmd_type="adb"):
+    if cmd_type == "adb":
+        if shutil.which("termux-adb"): return "termux-adb"
+        if shutil.which("adb"): return "adb"
+    elif cmd_type == "fastboot":
+        if shutil.which("termux-fastboot"): return "termux-fastboot"
+        if shutil.which("fastboot"): return "fastboot"
+    return None
 
-def detect_mtk_device():
-    """Detect a MediaTek device in BROM or Preloader mode."""
+def smart_scan_usb():
+    """Smart scan that automatically requests permissions and determines exact device mode."""
     CYAN = "\033[0;36m"
     GREEN = "\033[0;32m"
     YELLOW = "\033[1;33m"
-    RED = "\033[0;31m"
+    DIM = "\033[2m"
     BOLD = "\033[1m"
     NC = "\033[0m"
+    w = get_term_width()
 
-    print(f"\n{CYAN}{'═' * 50}{NC}")
-    print(f"{BOLD}  USB DEVICE DETECTION{NC}")
-    print(f"{CYAN}{'═' * 50}{NC}")
-
-    # Get termux-usb device list
-    termux_devices = get_usb_devices_termux()
-    print(f"  {GREEN}Termux USB paths:{NC} {termux_devices if termux_devices else 'None detected'}")
-
-    # Get lsusb info
+    print(f"\n{CYAN}{'═' * w}{NC}")
+    print(f"{BOLD}  SMART USB SCANNER{NC}")
+    print(f"{CYAN}{'═' * w}{NC}")
+    
+    print(f"  {DIM}Requesting USB permissions...{NC}")
+    request_usb_permissions()
+    # Give termux-usb a moment to settle
+    time.sleep(1)
+    
     lsusb_devices = get_lsusb_devices()
     if not lsusb_devices:
-        print(f"  {YELLOW}lsusb:{NC} No USB devices found")
+        print(f"  {YELLOW}No USB devices found.{NC}")
+        print(f"  {YELLOW}Tips:{NC}")
+        print(f"  • Ensure phone is connected via USB OTG.")
+        print(f"  • Try unplugging and re-plugging the USB cable.")
+        print(f"{CYAN}{'═' * w}{NC}\n")
+        return None
 
-    # Search for MediaTek device
-    mtk_found = None
+    # Step 1: Check BROM / MediaTek
     for dev in lsusb_devices:
         vid_pid = dev["vid_pid"]
         vid, pid = vid_pid.split(":") if ":" in vid_pid else ("", "")
-        print(f"  {GREEN}Found:{NC} {vid_pid} - {dev['description']} [{dev['path']}]")
-
+        
         if vid.lower() == MTK_VENDOR_ID:
             mode = MTK_MODES.get(pid.lower(), f"Unknown MTK mode (PID: {pid})")
-            mtk_found = {
-                "vid": vid,
-                "pid": pid,
-                "mode": mode,
-                "path": dev["path"],
-                "description": dev["description"],
-            }
-        elif vid.lower() in (XIAOMI_VENDOR_ID, GOOGLE_VENDOR_ID):
-            print(f"  {YELLOW}[!] Note: Device is in ADB/Fastboot mode, NOT BROM/Preloader.{NC}")
-            print(f"  {YELLOW}    -> Use the 'ADB & Fastboot Tools' menu (Option t).{NC}")
+            print(f"  {GREEN}[✓] MediaTek Device Detected!{NC}")
+            print(f"  {GREEN}Mode:{NC} {mode}")
+            print(f"  {GREEN}Path:{NC} {dev['path']}")
+            print(f"{CYAN}{'═' * w}{NC}\n")
+            return {"mode": "brom", "path": dev["path"], "info": {"chipset": DEVICE_CHIPSET}}
+            
+    # Step 2: Check ADB
+    adb_cmd = get_adb_fastboot_cmd("adb")
+    if adb_cmd:
+        try:
+            out = subprocess.check_output([adb_cmd, "devices"], text=True, timeout=5)
+            lines = out.strip().split('\n')
+            for line in lines[1:]: # Skip "List of devices attached"
+                if "device" in line or "recovery" in line:
+                    parts = line.split()
+                    state = parts[1]
+                    print(f"  {GREEN}[✓] ADB Device Detected! ({state.upper()}){NC}")
+                    
+                    # Fetch info
+                    model = "Unknown"
+                    codename = "Unknown"
+                    android = "Unknown"
+                    if state == "device":
+                        try:
+                            model = subprocess.check_output([adb_cmd, "-s", parts[0], "shell", "getprop", "ro.product.model"], text=True, timeout=2).strip()
+                            codename = subprocess.check_output([adb_cmd, "-s", parts[0], "shell", "getprop", "ro.product.device"], text=True, timeout=2).strip()
+                            android = subprocess.check_output([adb_cmd, "-s", parts[0], "shell", "getprop", "ro.build.version.release"], text=True, timeout=2).strip()
+                        except: pass
+                        
+                    print(f"  {GREEN}Model:{NC}   {model} ({codename})")
+                    print(f"  {GREEN}Android:{NC} {android}")
+                    print(f"{CYAN}{'═' * w}{NC}\n")
+                    return {"mode": "adb" if state == "device" else "recovery", "path": parts[0], "info": {"model": model, "codename": codename, "android": android}}
+        except Exception:
+            pass
 
-    print(f"{CYAN}{'─' * 50}{NC}")
+    # Step 3: Check Fastboot
+    fb_cmd = get_adb_fastboot_cmd("fastboot")
+    if fb_cmd:
+        try:
+            out = subprocess.check_output([fb_cmd, "devices"], text=True, timeout=5)
+            if out.strip():
+                parts = out.strip().split('\n')[0].split()
+                print(f"  {GREEN}[✓] Fastboot Device Detected!{NC}")
+                
+                codename = "Unknown"
+                try:
+                    var_out = subprocess.check_output([fb_cmd, "-s", parts[0], "getvar", "product"], stderr=subprocess.STDOUT, text=True, timeout=2)
+                    for line in var_out.split('\n'):
+                        if "product:" in line:
+                            codename = line.split("product:")[1].strip()
+                except: pass
+                
+                print(f"  {GREEN}Codename:{NC} {codename}")
+                print(f"{CYAN}{'═' * w}{NC}\n")
+                return {"mode": "fastboot", "path": parts[0], "info": {"codename": codename}}
+        except Exception:
+            pass
 
-    if mtk_found:
-        print(f"  {GREEN}[✓] MediaTek device detected!{NC}")
-        print(f"  {GREEN}VID:PID:{NC}    {mtk_found['vid']}:{mtk_found['pid']}")
-        print(f"  {GREEN}Mode:{NC}       {mtk_found['mode']}")
-        print(f"  {GREEN}Path:{NC}       {mtk_found['path']}")
-        print(f"  {GREEN}Target:{NC}     {DEVICE_NAME} ({DEVICE_CODENAME}) - {DEVICE_CHIPSET}")
+    # No specific mode matched but device is plugged in
+    print(f"  {YELLOW}[!] USB device detected, but not recognized as ADB, Fastboot, or BROM.{NC}")
+    for dev in lsusb_devices:
+        print(f"  {YELLOW}Unknown:{NC} {dev['vid_pid']} - {dev['description']}")
+    print(f"{CYAN}{'═' * w}{NC}\n")
+    return None
 
-        if mtk_found["pid"].lower() in ("0003", "2000"):
-            print(f"\n  {GREEN}[✓] Device is in flashable mode! Ready for unbrick.{NC}")
-        elif mtk_found["pid"].lower() == "20ff":
-            print(f"\n  {YELLOW}[!] Device appears to be booted normally (ADB mode).{NC}")
-            print(f"  {YELLOW}    It may not be bricked. Power off and hold Vol+ to enter BROM.{NC}")
-        print(f"{CYAN}{'═' * 50}{NC}\n")
-        return mtk_found
-    else:
-        print(f"  {RED}[✗] No MediaTek device detected.{NC}")
-        print(f"  {YELLOW}Tips:{NC}")
-        print(f"  • Ensure the {DEVICE_NAME} is connected via USB OTG cable.")
-        print(f"  • The bricked phone should be OFF. Hold Vol↑ + plug USB to enter BROM mode.")
-        print(f"  • Try unplugging and re-plugging the USB cable.")
-        print(f"  • If the battery is completely dead, hold Vol↑ while plugging in for 10+ seconds.")
-        print(f"{CYAN}{'═' * 50}{NC}\n")
-        return None
-
+def detect_mtk_device():
+    # Legacy wrapper for old behavior just in case
+    return smart_scan_usb()
 
 def wait_for_device(timeout=60):
     """Poll for MTK device with a countdown (for BROM mode entry)."""
@@ -177,6 +222,5 @@ def wait_for_device(timeout=60):
     print(f"\r  {YELLOW}[!] Timeout reached. No device found.{NC}                    ")
     return None
 
-
 if __name__ == "__main__":
-    detect_mtk_device()
+    smart_scan_usb()

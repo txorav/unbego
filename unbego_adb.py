@@ -8,6 +8,14 @@ Uses termux-adb/termux-fastboot for USB OTG, and native adb for Network.
 import os
 import subprocess
 import shutil
+import time
+
+# Use detect module for permissions and width if possible
+try:
+    from unbego_detect import request_usb_permissions, get_term_width
+except ImportError:
+    request_usb_permissions = lambda: None
+    get_term_width = lambda: 50
 
 # ── Colors ──────────────────────────────────────────────
 CYAN = "\033[0;36m"
@@ -54,18 +62,8 @@ def get_fastboot_cmd():
 
 
 def request_usb_permissions():
-    """Request permission for all connected USB devices via Termux API."""
-    if not shutil.which("termux-usb"):
-        return
-    try:
-        out = subprocess.check_output(["termux-usb", "-l"], stderr=subprocess.STDOUT).decode("utf-8")
-        devices = [line.strip() for line in out.split('\n') if line.strip().startswith('/dev/')]
-        for dev in devices:
-            # -r requests permission. It shows a popup if not already granted.
-            subprocess.run(["termux-usb", "-r", dev], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
-
+    """Stub in case import fails"""
+    pass
 
 def cmd_list_devices():
     request_usb_permissions()
@@ -186,10 +184,11 @@ def cmd_wait_for_device():
 
 
 def adb_menu():
+    w = get_term_width()
     while True:
-        print(f"\n  {CYAN}{'─' * 48}{NC}")
+        print(f"\n  {CYAN}{'─' * w}{NC}")
         print(f"  {BOLD}ADB & FASTBOOT TOOLS{NC}")
-        print(f"  {CYAN}{'─' * 48}{NC}")
+        print(f"  {CYAN}{'─' * w}{NC}")
         print(f"  {GREEN}1{NC}) List Devices (ADB & Fastboot)")
         print(f"  {GREEN}2{NC}) Connect to Network ADB (Wireless)")
         print(f"  {GREEN}3{NC}) Open ADB Shell")
@@ -197,9 +196,9 @@ def adb_menu():
         print(f"  {GREEN}5{NC}) Reboot Device (ADB / Fastboot)")
         print(f"  {GREEN}6{NC}) Fastboot Flash Image")
         print(f"  {GREEN}7{NC}) Wait for Device")
-        print(f"  {CYAN}{'─' * 48}{NC}")
+        print(f"  {CYAN}{'─' * w}{NC}")
         print(f"  {GREEN}0{NC}) Back to Main Menu")
-        print(f"  {CYAN}{'─' * 48}{NC}")
+        print(f"  {CYAN}{'─' * w}{NC}")
 
         choice = input(f"  {YELLOW}Select an option: {NC}").strip()
 
