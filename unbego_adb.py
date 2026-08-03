@@ -160,6 +160,16 @@ def cmd_fastboot_flash():
     run_interactive([fb_cmd, "flash", partition, filepath])
 
 
+def cmd_wait_for_device():
+    print(f"\n  {YELLOW}[*] Waiting for device to be connected and authorized...{NC}")
+    print(f"  {YELLOW}    (Press Ctrl+C to cancel){NC}")
+    cmd = get_adb_cmd(use_network=False)
+    if not cmd:
+        return
+    run_interactive([cmd, "wait-for-device"])
+    print(f"  {GREEN}[✓] Device detected!{NC}")
+
+
 def adb_menu():
     while True:
         print(f"\n  {CYAN}{'─' * 48}{NC}")
@@ -171,6 +181,7 @@ def adb_menu():
         print(f"  {GREEN}4{NC}) ADB Sideload (OTA Zip)")
         print(f"  {GREEN}5{NC}) Reboot Device (ADB / Fastboot)")
         print(f"  {GREEN}6{NC}) Fastboot Flash Image")
+        print(f"  {GREEN}7{NC}) Wait for Device")
         print(f"  {CYAN}{'─' * 48}{NC}")
         print(f"  {GREEN}0{NC}) Back to Main Menu")
         print(f"  {CYAN}{'─' * 48}{NC}")
@@ -189,6 +200,8 @@ def adb_menu():
             cmd_reboot()
         elif choice == "6":
             cmd_fastboot_flash()
+        elif choice == "7":
+            cmd_wait_for_device()
         elif choice in ("0", "q", "exit", "quit"):
             break
         else:
